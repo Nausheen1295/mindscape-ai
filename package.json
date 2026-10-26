@@ -1,0 +1,9 @@
+{
+  "name": "mindscape-ai",
+  "private": true,
+  "type": "module",
+  "description": "MindScape AI — a private second brain with on-device semantic search. Static site, no build step.",
+  "scripts": {
+    "test": "node --test \"tests/*.test.mjs\""
+  }
+}

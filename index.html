@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MindScape AI — Your Second Brain</title>
+  <meta name="description" content="A private second brain: write notes, and an on-device AI model links related ideas, maps them as a graph and answers questions from your own knowledge." />
+  <meta name="theme-color" content="#07080d" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f472b6' stroke-width='2'%3E%3Ccircle cx='6' cy='6' r='3'/%3E%3Ccircle cx='18' cy='8' r='3'/%3E%3Ccircle cx='10' cy='18' r='3'/%3E%3Cpath d='M8.5 7.5l6.7 0M7.2 8.7l1.9 6.6M16.3 10.5l-4.4 5.3'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <script>
+    try { const t = localStorage.getItem("nexus-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  </script>
+</head>
+<body>
+  <header class="bar">
+    <a class="brand" href="./">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="10" cy="18" r="2.5"/><path d="M8.5 6.5l7 1M7 8.4l2 7.2M16.4 10l-4.6 6"/></svg></span>
+      MindScape <small>KNOWLEDGE LAB</small>
+    </a>
+    <nav class="views" aria-label="Views">
+      <button type="button" data-view="notes" aria-pressed="true">Notes</button>
+      <button type="button" data-view="graph" aria-pressed="false">Graph</button>
+      <button type="button" data-view="ask" aria-pressed="false">Ask</button>
+    </nav>
+    <span class="bar-spacer"></span>
+    <span class="model" id="modelStatus" role="status" title="On-device semantic model">
+      <span class="dot"></span><span class="txt">Keyword mode</span>
+    </span>
+    <button class="btn btn-ghost btn-icon" id="settingsBtn" type="button" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+    <button class="btn btn-ghost btn-icon" id="themeToggle" type="button" aria-label="Switch theme"></button>
+    <a class="home" href="https://nausheen1295.github.io/portfolio/">NEXUS ↗</a>
+  </header>
+
+  <!-- NOTES VIEW -->
+  <main id="view-notes" class="notes-layout">
+    <aside class="sidebar" aria-label="Notes">
+      <div class="side-top">
+        <label class="sr-only" for="search">Search notes</label>
+        <input class="input" id="search" type="search" placeholder="Search by meaning…  (Ctrl K)" autocomplete="off" />
+        <button class="btn btn-primary" id="newBtn" type="button">+ New</button>
+      </div>
+      <div class="chips tag-bar" id="tagBar" role="group" aria-label="Filter by tag"></div>
+      <p class="small muted list-info" id="listInfo" aria-live="polite"></p>
+      <ul class="note-list" id="noteList"></ul>
+    </aside>
+
+    <section class="editor" aria-label="Editor">
+      <div class="empty" id="editorEmpty" hidden>
+        <p>No note selected.</p>
+        <button class="btn btn-primary" type="button" data-new>Write your first note</button>
+      </div>
+      <div id="editorBody">
+        <div class="ed-head">
+          <label class="sr-only" for="title">Title</label>
+          <input id="title" class="title-input" placeholder="Untitled" maxlength="120" autocomplete="off" />
+          <div class="row ed-tools">
+            <div class="seg" role="group" aria-label="Editor mode">
+              <button type="button" id="modeEdit" aria-pressed="true">Write</button>
+              <button type="button" id="modePreview" aria-pressed="false">Preview</button>
+            </div>
+            <span class="small muted" id="saveState" aria-live="polite"></span>
+            <button class="btn btn-ghost small" type="button" id="downloadNote" title="Download as Markdown">.md</button>
+            <button class="btn btn-ghost small danger" type="button" id="deleteNote">Delete</button>
+          </div>
+        </div>
+        <label class="sr-only" for="body">Note</label>
+        <textarea id="body" class="body-input" placeholder="Write in Markdown. Use #tags and [[links to other notes]]."></textarea>
+        <article id="preview" class="preview" hidden></article>
+        <p class="small muted ed-meta" id="edMeta"></p>
+      </div>
+    </section>
+
+    <aside class="connections" aria-label="Connections">
+      <h2>Related by meaning</h2>
+      <p class="small muted" id="relatedHint">Notes about similar ideas, even with no shared words.</p>
+      <ul class="rel-list" id="related"></ul>
+      <h2>Links</h2>
+      <ul class="rel-list" id="links"></ul>
+      <h2>Backlinks</h2>
+      <ul class="rel-list" id="backlinks"></ul>
+    </aside>
+  </main>
+
+  <!-- GRAPH VIEW -->
+  <main id="view-graph" class="graph-view" hidden>
+    <div class="graph-tools card">
+      <label class="small">Meaning links above
+        <input type="range" id="threshold" min="0.2" max="0.7" step="0.05" value="0.35" />
+        <output id="thresholdOut" for="threshold">35%</output> similar
+      </label>
+      <span class="legend small"><i class="solid"></i> your [[links]] <i class="dashed"></i> found by meaning</span>
+      <span class="small muted" id="graphInfo"></span>
+    </div>
+    <div id="graph" class="graph" role="group" aria-label="Knowledge graph of your notes"></div>
+    <p class="small muted graph-help">Drag to move notes, scroll to zoom, click a note to open it.</p>
+  </main>
+
+  <!-- ASK VIEW -->
+  <main id="view-ask" class="wrap ask-view" hidden>
+    <h1>Ask your notes</h1>
+    <p class="lede">Ask a question in your own words. MindScape finds the passages in your notes that answer it best and shows where they came from. It never writes text that isn't in your notes.</p>
+    <form id="askForm" class="ask-form">
+      <label class="sr-only" for="askInput">Question</label>
+      <input class="input" id="askInput" placeholder="e.g. How should I store passwords?" autocomplete="off" />
+      <button class="btn btn-primary" type="submit">Ask</button>
+    </form>
+    <div class="chips ask-examples" id="askExamples"></div>
+    <div id="answers" aria-live="polite"></div>
+  </main>
+
+  <dialog id="settings" class="dialog" aria-labelledby="settingsTitle">
+    <form method="dialog">
+      <h2 id="settingsTitle">Settings</h2>
+      <p class="small muted">Your notes live in this browser's storage (IndexedDB). Export regularly to keep a backup.</p>
+      <div class="set-grid">
+        <button class="btn" type="button" id="exportBtn">Export notes (.json)</button>
+        <label class="btn" for="importFile">Import notes (.json)</label>
+        <input type="file" id="importFile" accept=".json,application/json" class="sr-only" />
+        <button class="btn" type="button" id="samplesBtn">Add sample notes</button>
+        <button class="btn danger" type="button" id="emptyBtn">Start empty (delete all)</button>
+      </div>
+      <h3>Semantic model</h3>
+      <p class="small soft" id="modelDetail">all-MiniLM-L6-v2 (384-dimension sentence embeddings, ~23 MB), runs on your device with Transformers.js. Until it's ready, MindScape uses keyword (TF-IDF) matching.</p>
+      <div class="row" style="justify-content:flex-end"><button class="btn btn-primary" value="close">Done</button></div>
+    </form>
+  </dialog>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
