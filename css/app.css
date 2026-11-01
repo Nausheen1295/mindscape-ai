@@ -46,21 +46,14 @@ mark { background: rgba(var(--accent-rgb), .25); color: inherit; border-radius: 
 
 .editor { min-height: 0; overflow-y: auto; padding: 22px clamp(16px, 4vw, 48px); display: flex; flex-direction: column; }
 #editorBody { display: flex; flex-direction: column; flex: 1; max-width: 780px; width: 100%; margin: 0 auto; }
-.note-paper { padding: 18px clamp(16px, 3vw, 34px); border-radius: var(--radius); transition: transform .25s ease, box-shadow .25s ease, background .25s ease; }
+.note-paper { --note-paper-bg: var(--surface); --note-paper-text: var(--text); padding: 18px clamp(16px, 3vw, 34px); border-radius: var(--radius); background-color: var(--note-paper-bg); color: var(--note-paper-text); transition: transform .25s ease, box-shadow .25s ease, background .25s ease; }
 .note-paper.style-sticky { transform: rotate(-.35deg); box-shadow: 4px 8px 18px rgba(30, 45, 70, .12); }
 .note-paper.style-sticky .body-input, .note-paper.style-sticky .preview { font-size: 1.03rem; }
 .note-paper.style-plan { background-image: linear-gradient(var(--line) 1px, transparent 1px); background-size: 100% 32px; }
-.paper-sun { background: #fff8cc; color: #3d3420; }
-.paper-sky { background: #e4f3ff; }
-.paper-rose { background: #fff0f4; }
-.paper-mint { background: #e8f8ef; }
-.paper-sun .title-input, .paper-sun .body-input, .paper-sun .preview,
-.paper-rose .title-input, .paper-rose .body-input, .paper-rose .preview,
-.paper-mint .title-input, .paper-mint .body-input, .paper-mint .preview { color: #253044; }
-.font-clean .body-input, .font-clean .preview { font-family: var(--font); }
-.font-friendly .body-input, .font-friendly .preview { font-family: "Nunito", "Trebuchet MS", var(--font); }
-.font-typewriter .body-input, .font-typewriter .preview { font-family: var(--font-mono); }
-.font-handwritten .body-input, .font-handwritten .preview { font-family: "Comic Sans MS", "Segoe Print", cursive; }
+.paper-sun { --note-paper-bg: #fff8cc; --note-paper-text: #3d3420; }
+.paper-sky { --note-paper-bg: #e4f3ff; }
+.paper-rose { --note-paper-bg: #fff0f4; }
+.paper-mint { --note-paper-bg: #e8f8ef; }
 .note-options { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 8px; }
 .note-options label { display: flex; align-items: center; gap: 5px; color: var(--text-mute); font-size: .75rem; }
 .note-options select { min-height: 30px; padding: 3px 7px; width: auto; font-size: .78rem; }
@@ -75,6 +68,13 @@ mark { background: rgba(var(--accent-rgb), .25); color: inherit; border-radius: 
   flex: 1; min-height: 50vh; border: 0; background: none; color: var(--text); resize: none;
   font: 15px/1.75 var(--font-mono); padding: 6px 0;
 }
+#editorBody .title-input,
+#editorBody .body-input,
+#editorBody .preview { color: var(--note-paper-text); }
+#editorBody.font-clean .body-input, #editorBody.font-clean .preview { font-family: var(--font); }
+#editorBody.font-friendly .body-input, #editorBody.font-friendly .preview { font-family: "Nunito", "Trebuchet MS", var(--font); }
+#editorBody.font-typewriter .body-input, #editorBody.font-typewriter .preview { font-family: var(--font-mono); }
+#editorBody.font-handwritten .body-input, #editorBody.font-handwritten .preview { font-family: "Comic Sans MS", "Segoe Print", cursive; }
 .body-input:focus { outline: none; }
 .preview { flex: 1; line-height: 1.75; }
 .preview h1, .preview h2, .preview h3 { margin-top: 1.2em; }
