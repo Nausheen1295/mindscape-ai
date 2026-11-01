@@ -61,6 +61,16 @@ npm run build        # validate the deployable static site
 
 The repository includes a GitHub Actions workflow that runs both checks and deploys the site to GitHub Pages when `main` changes. Enable **GitHub Pages → Source: GitHub Actions** once in the repository settings.
 
+## Accounts and note syncing
+
+MindScape can sync notes between devices with Supabase. To enable it:
+
+1. Create a Supabase project and run [`supabase/schema.sql`](./supabase/schema.sql) in the SQL editor.
+2. Copy the project URL and public `anon` key into [`js/config.js`](./js/config.js). The anon key is intended for browser use; never use a service-role key.
+3. Add your deployed site URL to Supabase Authentication → URL Configuration and configure email confirmation as desired.
+
+Without these settings, MindScape continues to work locally in the browser. Account login, cloud sync, and note syncing are disabled until configured.
+
 ## Privacy and limits
 
 - **Privacy:** notes and embeddings stay in your browser's IndexedDB. Clearing site data deletes them, so use **Settings → Export** for backups.

@@ -9,7 +9,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f472b6' stroke-width='2'%3E%3Ccircle cx='6' cy='6' r='3'/%3E%3Ccircle cx='18' cy='8' r='3'/%3E%3Ccircle cx='10' cy='18' r='3'/%3E%3Cpath d='M8.5 7.5l6.7 0M7.2 8.7l1.9 6.6M16.3 10.5l-4.4 5.3'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Nunito:wght@400;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" />
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/app.css" />
   <script>
@@ -35,6 +35,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
     </button>
     <button class="btn btn-ghost btn-icon" id="themeToggle" type="button" aria-label="Switch theme"></button>
+    <button class="account-btn" id="accountBtn" type="button">Sign in</button>
     <a class="home" href="https://nausheen1295.github.io/portfolio/">NEXUS ↗</a>
   </header>
 
@@ -68,6 +69,32 @@
             <span class="small muted" id="saveState" aria-live="polite"></span>
             <button class="btn btn-ghost small" type="button" id="downloadNote" title="Download this note">Download</button>
             <button class="btn btn-ghost small danger" type="button" id="deleteNote">Delete note</button>
+          </div>
+          <div class="note-options" aria-label="Note appearance">
+            <label>Style
+              <select id="noteStyle">
+                <option value="regular">Regular</option>
+                <option value="sticky">Sticky note</option>
+                <option value="plan">Plan sheet</option>
+              </select>
+            </label>
+            <label>Paper
+              <select id="noteColor">
+                <option value="plain">Plain</option>
+                <option value="sun">Warm yellow</option>
+                <option value="sky">Light blue</option>
+                <option value="rose">Soft pink</option>
+                <option value="mint">Mint green</option>
+              </select>
+            </label>
+            <label>Font
+              <select id="noteFont">
+                <option value="clean">Clean</option>
+                <option value="friendly">Friendly</option>
+                <option value="typewriter">Typewriter</option>
+                <option value="handwritten">Handwritten</option>
+              </select>
+            </label>
           </div>
         </div>
         <label class="sr-only" for="body">Note</label>
@@ -132,9 +159,27 @@
     </form>
   </dialog>
 
+  <dialog id="accountDialog" class="dialog" aria-labelledby="accountTitle">
+    <form method="dialog" id="accountForm">
+      <h2 id="accountTitle">Keep your notes with you</h2>
+      <p class="small muted">Create an account to see your notes on any device. Your notes stay private to your account.</p>
+      <label class="field-label" for="accountEmail">Email</label>
+      <input class="input" id="accountEmail" type="email" autocomplete="email" required />
+      <label class="field-label" for="accountPassword">Password</label>
+      <input class="input" id="accountPassword" type="password" minlength="6" autocomplete="current-password" required />
+      <p class="small note error" id="accountError" hidden></p>
+      <div class="row account-actions">
+        <button class="btn btn-primary" type="submit" value="signin">Sign in</button>
+        <button class="btn" type="submit" value="signup">Create account</button>
+      </div>
+      <button class="btn btn-ghost" type="button" id="accountCancel">Not now</button>
+    </form>
+  </dialog>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

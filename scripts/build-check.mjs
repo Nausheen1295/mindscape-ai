@@ -13,6 +13,8 @@ const required = [
   "js/semantic.js",
   "js/store.js",
   "js/theme.js",
+  "js/cloud.js",
+  "js/config.js",
 ];
 
 for (const file of required) {
@@ -24,7 +26,7 @@ for (const asset of ["css/base.css", "css/app.css", "js/app.js"]) {
   if (!html.includes(asset)) throw new Error(`index.html does not reference ${asset}`);
 }
 
-const checks = ["js/app.js", "js/embed-worker.js", "js/semantic.js", "js/store.js", "js/theme.js"];
+const checks = ["js/app.js", "js/embed-worker.js", "js/semantic.js", "js/store.js", "js/theme.js", "js/cloud.js", "js/config.js"];
 await Promise.all(checks.map((file) => new Promise((resolveCheck, reject) => {
   const child = spawn(process.execPath, ["--check", resolve(root, file)], { stdio: "inherit" });
   child.on("error", reject);

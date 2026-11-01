@@ -18,6 +18,8 @@ body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; ove
 .model.failed .dot { background: var(--danger); }
 @keyframes pulse { 50% { opacity: .3; } }
 .danger { color: var(--danger); }
+.account-btn { border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface-2); color: var(--text); padding: 6px 12px; font: 600 .8rem var(--font); cursor: pointer; }
+.account-btn:hover { background: var(--surface-3); }
 
 /* --- Notes layout ------------------------------------------------------ */
 .notes-layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr) 290px; }
@@ -44,6 +46,24 @@ mark { background: rgba(var(--accent-rgb), .25); color: inherit; border-radius: 
 
 .editor { min-height: 0; overflow-y: auto; padding: 22px clamp(16px, 4vw, 48px); display: flex; flex-direction: column; }
 #editorBody { display: flex; flex-direction: column; flex: 1; max-width: 780px; width: 100%; margin: 0 auto; }
+.note-paper { padding: 18px clamp(16px, 3vw, 34px); border-radius: var(--radius); transition: transform .25s ease, box-shadow .25s ease, background .25s ease; }
+.note-paper.style-sticky { transform: rotate(-.35deg); box-shadow: 4px 8px 18px rgba(30, 45, 70, .12); }
+.note-paper.style-sticky .body-input, .note-paper.style-sticky .preview { font-size: 1.03rem; }
+.note-paper.style-plan { background-image: linear-gradient(var(--line) 1px, transparent 1px); background-size: 100% 32px; }
+.paper-sun { background: #fff8cc; color: #3d3420; }
+.paper-sky { background: #e4f3ff; }
+.paper-rose { background: #fff0f4; }
+.paper-mint { background: #e8f8ef; }
+.paper-sun .title-input, .paper-sun .body-input, .paper-sun .preview,
+.paper-rose .title-input, .paper-rose .body-input, .paper-rose .preview,
+.paper-mint .title-input, .paper-mint .body-input, .paper-mint .preview { color: #253044; }
+.font-clean .body-input, .font-clean .preview { font-family: var(--font); }
+.font-friendly .body-input, .font-friendly .preview { font-family: "Nunito", "Trebuchet MS", var(--font); }
+.font-typewriter .body-input, .font-typewriter .preview { font-family: var(--font-mono); }
+.font-handwritten .body-input, .font-handwritten .preview { font-family: "Comic Sans MS", "Segoe Print", cursive; }
+.note-options { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 8px; }
+.note-options label { display: flex; align-items: center; gap: 5px; color: var(--text-mute); font-size: .75rem; }
+.note-options select { min-height: 30px; padding: 3px 7px; width: auto; font-size: .78rem; }
 .ed-head { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
 .title-input { border: 0; background: none; color: var(--text); font: 700 clamp(1.4rem, 3vw, 2rem) var(--font-display); padding: 4px 0; width: 100%; }
 .title-input:focus { outline: none; box-shadow: 0 2px 0 var(--accent); }
@@ -116,6 +136,8 @@ mark { background: rgba(var(--accent-rgb), .25); color: inherit; border-radius: 
 .dialog::backdrop { background: rgba(4, 5, 10, .6); }
 .set-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 14px 0; }
 .dialog h3 { margin-top: 14px; font-size: .9rem; }
+.field-label { display: block; margin: 10px 0 4px; font-size: .82rem; color: var(--text-soft); }
+.account-actions { margin-top: 14px; }
 
 /* --- Responsive -------------------------------------------------------- */
 @media (max-width: 1100px) {

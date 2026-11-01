@@ -5,6 +5,7 @@ import { initTheme, esc } from "./theme.js";
 import * as db from "./store.js";
 import { parseLinks, parseTags, plainText, tfidf, cosine, semanticLinks, chunk, hash, highlight } from "./semantic.js";
 import { SAMPLE_NOTES } from "./samples.js";
+import * as cloud from "./cloud.js";
 
 const $ = (id) => document.getElementById(id);
 const byTitle = (t) => notes.find((n) => n.title.trim().toLowerCase() === t.trim().toLowerCase());
@@ -14,6 +15,12 @@ let currentId = null;
 let tagFilter = null;
 let searchResults = null; // [{id, score}] | null
 let view = "notes";
+let cloudSession = null;
+
+function applyNoteAppearance(note) {
+  const editor = $("editorBody");
+  editor.className = `note-paper style-${note.style || "regular"} paper-${note.color || "plain"} font-${note.font || "clean"}`;
+}
 
 /* ================================================================ engine */
 // Semantic vectors come from the on-device model; TF-IDF is the fallback.
@@ -145,7 +152,7 @@ async function load() {
 }
 function makeNote({ title = "Untitled", body = "" } = {}) {
   const now = Date.now();
-  return { id: db.newId(), title, body, created: now, updated: now };
+  return { id: db.newId(), title, body, created: now, updated: now, style: "regular", color: "plain", font: "clean" };
 }
 async function addSamples() {
   const now = Date.now();
@@ -226,6 +233,10 @@ function openNote(id) {
   if (n) {
     $("title").value = n.title;
     $("body").value = n.body;
+    $("noteStyle").value = n.style || "regular";
+    $("noteColor").value = n.color || "plain";
+    $("noteFont").value = n.font || "clean";
+    applyNoteAppearance(n);
     history.replaceState(null, "", `#${n.id}`);
     setPreview(previewMode);
   } else history.replaceState(null, "", location.pathname);
@@ -266,11 +277,19 @@ function onEdit() {
   if (!n) return;
   n.title = $("title").value;
   n.body = $("body").value;
+  n.style = $("noteStyle").value;
+  n.color = $("noteColor").value;
+  n.font = $("noteFont").value;
   n.updated = Date.now();
+  applyNoteAppearance(n);
   $("saveState").textContent = "Saving…";
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
-    try { await db.putNote(n); $("saveState").textContent = "Saved"; }
+    try {
+      await db.putNote(n);
+      if (cloudSession) await cloud.putNote(n);
+      $("saveState").textContent = cloudSession ? "Saved to your account" : "Saved";
+    }
     catch { $("saveState").textContent = "Couldn't save — storage unavailable"; }
   }, 400);
   clearTimeout(embedTimer);
@@ -279,6 +298,9 @@ function onEdit() {
 }
 $("title").addEventListener("input", onEdit);
 $("body").addEventListener("input", onEdit);
+$("noteStyle").addEventListener("change", onEdit);
+$("noteColor").addEventListener("change", onEdit);
+$("noteFont").addEventListener("change", onEdit);
 $("title").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("body").focus(); } });
 
 function newNote(title = "Untitled") {
@@ -289,7 +311,7 @@ function newNote(title = "Untitled") {
   // Open first so typing straight away is never overwritten by a late render.
   openNote(n.id);
   $("title").focus(); $("title").select();
-  db.putNote(n).catch(() => { $("saveState").textContent = "Couldn't save — storage unavailable"; });
+  db.putNote(n).then(() => cloudSession && cloud.putNote(n)).catch(() => { $("saveState").textContent = "Couldn't save this note"; });
   refreshVectors().then(renderConnections);
 }
 $("newBtn").addEventListener("click", () => newNote());
@@ -300,6 +322,7 @@ $("deleteNote").addEventListener("click", async () => {
   if (!n || !confirm(`Delete “${n.title || "Untitled"}”? This can't be undone.`)) return;
   notes = notes.filter((x) => x.id !== n.id);
   await db.deleteNote(n.id).catch(() => {});
+  if (cloudSession) await cloud.deleteNote(n.id).catch(() => {});
   await refreshVectors();
   openNote(notes[0]?.id || null);
 });
@@ -514,9 +537,10 @@ $("importFile").addEventListener("change", async (e) => {
     const list = (Array.isArray(data) ? data : data.notes || []).filter((n) => n && typeof n.body === "string");
     if (!list.length) throw new Error("no notes");
     const known = new Set(notes.map((n) => n.id));
-    const incoming = list.map((n) => ({ ...makeNote({ title: String(n.title || "Untitled"), body: n.body }), ...(n.id && !known.has(n.id) ? { id: String(n.id) } : {}), updated: Number(n.updated) || Date.now(), created: Number(n.created) || Date.now() }));
+    const incoming = list.map((n) => ({ ...makeNote({ title: String(n.title || "Untitled"), body: n.body }), ...(n.id && !known.has(n.id) ? { id: String(n.id) } : {}), style: n.style || "regular", color: n.color || "plain", font: n.font || "clean", updated: Number(n.updated) || Date.now(), created: Number(n.created) || Date.now() }));
     notes.push(...incoming);
     await db.putNotes(incoming).catch(() => {});
+    if (cloudSession) await cloud.putNotes(incoming);
     sortNotes();
     await refreshVectors();
     renderAll();
@@ -524,11 +548,12 @@ $("importFile").addEventListener("change", async (e) => {
   } catch { alert("That file isn't a MindScape export (a JSON file with a list of notes)."); }
   e.target.value = "";
 });
-$("samplesBtn").addEventListener("click", async () => { await addSamples(); sortNotes(); await refreshVectors(); openNote(currentId || notes[0]?.id); dlg.close(); });
+$("samplesBtn").addEventListener("click", async () => { await addSamples(); if (cloudSession) await cloud.putNotes(notes); sortNotes(); await refreshVectors(); openNote(currentId || notes[0]?.id); dlg.close(); });
 $("emptyBtn").addEventListener("click", async () => {
   if (!confirm("Delete every note in this browser? Export first if you want a backup.")) return;
   notes = [];
   await db.clearNotes().catch(() => {});
+  if (cloudSession) await cloud.deleteAllNotes().catch(() => {});
   await db.setMeta("seeded", true).catch(() => {});
   await refreshVectors();
   openNote(null);
@@ -542,4 +567,70 @@ document.addEventListener("keydown", (e) => {
 
 /* ================================================================= start */
 initTheme($("themeToggle"));
-load().then(startModel);
+
+async function syncAccount(session) {
+  cloudSession = session;
+  const button = $("accountBtn");
+  if (!session) {
+    button.textContent = cloud.cloudConfigured ? "Sign in" : "Set up account";
+    button.title = cloud.cloudConfigured ? "Sign in to sync your notes" : "Add Supabase settings to enable accounts";
+    return;
+  }
+  button.textContent = session.user.email?.split("@")[0] || "Account";
+  button.title = "Sign out";
+  try {
+    const remote = await cloud.getNotes();
+    if (remote.length) {
+      notes = remote;
+      await db.clearNotes();
+      await db.putNotes(notes);
+    } else if (notes.length) {
+      await cloud.putNotes(notes);
+    }
+    sortNotes();
+    await refreshVectors();
+    openNote(notes.find((n) => n.id === currentId)?.id || notes[0]?.id || null);
+    $("saveState").textContent = "Synced to your account";
+  } catch {
+    $("saveState").textContent = "Signed in, but notes could not sync";
+  }
+}
+
+function initAccount() {
+  const dialog = $("accountDialog");
+  const form = $("accountForm");
+  $("accountBtn").addEventListener("click", async () => {
+    if (cloudSession) {
+      await cloud.signOut();
+      return;
+    }
+    if (!cloud.cloudConfigured) {
+      alert("Accounts are not connected yet. Add your Supabase URL and public anon key in js/config.js.");
+      return;
+    }
+    dialog.showModal();
+  });
+  $("accountCancel").addEventListener("click", () => dialog.close());
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const action = event.submitter?.value;
+    const error = $("accountError");
+    error.hidden = true;
+    const result = action === "signup"
+      ? await cloud.signUp($("accountEmail").value.trim(), $("accountPassword").value)
+      : await cloud.signIn($("accountEmail").value.trim(), $("accountPassword").value);
+    if (result.error) {
+      error.textContent = result.error.message;
+      error.hidden = false;
+      return;
+    }
+    dialog.close();
+    if (action === "signup" && !result.data.session) {
+      alert("Check your email to confirm your account, then sign in.");
+    }
+  });
+  cloud.onAuthChange(syncAccount);
+  cloud.getSession().then(syncAccount);
+}
+
+load().then(() => { startModel(); initAccount(); });
