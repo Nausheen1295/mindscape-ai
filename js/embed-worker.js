@@ -23,12 +23,13 @@ const ready = pipeline("feature-extraction", MODEL, {
     postMessage({ type: "progress", loaded, total });
   },
 }).then((extractor) => { postMessage({ type: "ready" }); return extractor; })
-  .catch((err) => { postMessage({ type: "failed", error: String(err?.message || err) }); throw err; });
+.catch((err) => { postMessage({ type: "failed", error: String(err?.message || err) }); return null; });
 
 onmessage = async ({ data }) => {
   const { id, texts } = data;
   try {
     const extractor = await ready;
+    if (!extractor) throw new Error("The semantic model is unavailable.");
     const vectors = [];
     // Small batches keep memory flat on long notebooks.
     for (let i = 0; i < texts.length; i += 16) {

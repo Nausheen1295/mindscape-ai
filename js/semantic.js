@@ -67,12 +67,13 @@ export function tfidf(docs) {
 /** Cosine similarity for dense (Float32Array/array) or sparse (Map) unit vectors. */
 export function cosine(a, b) {
   if (!a || !b) return 0;
-  if (a instanceof Map) {
+  if (a instanceof Map && b instanceof Map) {
     let s = 0;
     const [small, big] = a.size < b.size ? [a, b] : [b, a];
     small.forEach((x, w) => { const y = big.get(w); if (y) s += x * y; });
     return s;
   }
+  if (a instanceof Map || b instanceof Map || a.length !== b.length) return 0;
   let s = 0;
   for (let i = 0; i < a.length; i++) s += a[i] * b[i];
   return s;
@@ -83,19 +84,20 @@ export function cosine(a, b) {
  * most `perNote` strongest partners (so one generic note can't link to everything).
  */
 export function semanticLinks(ids, vecs, threshold, perNote = 4) {
-  const best = new Map(ids.map((id) => [id, []]));
+  if (perNote <= 0 || ids.length < 2) return [];
+  const candidates = [];
   for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
     const s = cosine(vecs[i], vecs[j]);
-    if (s < threshold) continue;
-    best.get(ids[i]).push([ids[j], s]);
-    best.get(ids[j]).push([ids[i], s]);
+    if (Number.isFinite(s) && s >= threshold) candidates.push({ a: ids[i], b: ids[j], score: s });
   }
-  const keep = new Map();
-  best.forEach((list, id) => list.sort((x, y) => y[1] - x[1]).slice(0, perNote).forEach(([other, s]) => {
-    const key = id < other ? `${id}|${other}` : `${other}|${id}`;
-    keep.set(key, s);
-  }));
-  return [...keep].map(([k, s]) => { const [a, b] = k.split("|"); return { a, b, score: s }; });
+  candidates.sort((a, b) => b.score - a.score);
+  const degree = new Map(ids.map((id) => [id, 0]));
+  return candidates.filter(({ a, b }) => {
+    if (degree.get(a) >= perNote || degree.get(b) >= perNote) return false;
+    degree.set(a, degree.get(a) + 1);
+    degree.set(b, degree.get(b) + 1);
+    return true;
+  });
 }
 
 /** Splits a note into passages (paragraphs, long ones split by sentence) for "Ask". */
@@ -107,7 +109,15 @@ export function chunk(body, maxChars = 420) {
     let cur = "";
     for (const s of p.split(/(?<=[.!?])\s+/)) {
       if ((cur + " " + s).length > maxChars && cur) { out.push(cur.trim()); cur = ""; }
-      cur += " " + s;
+      if (s.length > maxChars) {
+        const words = s.split(/\s+/);
+        for (const word of words) {
+          if ((cur + " " + word).length > maxChars && cur) { out.push(cur.trim()); cur = ""; }
+          cur += " " + word;
+        }
+      } else {
+        cur += " " + s;
+      }
     }
     if (cur.trim()) out.push(cur.trim());
   }

@@ -33,8 +33,12 @@ function startModel() {
   try {
     worker = new Worker("js/embed-worker.js", { type: "module" });
   } catch {
-    engine.failed = true; setModel("failed", "Keyword mode"); return;
+    engine.failed = true; setModel("failed", "Keyword mode (AI model unavailable)"); return;
   }
+  const rejectPending = (message) => {
+    pending.forEach(({ reject }) => reject(new Error(message)));
+    pending.clear();
+  };
   setModel("loading", "Loading AI model…");
   worker.onmessage = ({ data }) => {
     if (data.type === "progress") {
@@ -51,8 +55,7 @@ function startModel() {
     if (data.type === "failed") {
       engine.failed = true;
       setModel("failed", "Keyword mode (AI model unavailable)");
-      pending.forEach(({ reject }) => reject(new Error(data.error)));
-      pending.clear();
+      rejectPending(data.error || "The semantic model failed to load.");
       return;
     }
     const p = pending.get(data.id);
@@ -60,7 +63,11 @@ function startModel() {
     pending.delete(data.id);
     data.error ? p.reject(new Error(data.error)) : p.resolve(data.vectors);
   };
-  worker.onerror = () => { engine.failed = true; setModel("failed", "Keyword mode (AI model unavailable)"); };
+  worker.onerror = (event) => {
+    engine.failed = true;
+    setModel("failed", "Keyword mode (AI model unavailable)");
+    rejectPending(event.message || "The semantic model worker failed.");
+  };
 }
 
 function embed(texts) {
@@ -72,6 +79,7 @@ function embed(texts) {
 
 /** Embeds texts with an IndexedDB cache keyed by content hash. */
 const memCache = new Map();
+let vectorRefreshToken = 0;
 async function embedCached(texts) {
   const keys = texts.map(hash);
   const out = new Array(texts.length);
@@ -92,12 +100,17 @@ async function embedCached(texts) {
 const noteText = (n) => `${n.title}\n${plainText(n.body)}`.slice(0, 2000);
 
 async function refreshVectors() {
+  const token = ++vectorRefreshToken;
   engine.keyword = tfidf(notes.map(noteText));
+  if (engine.ready) engine.vecs = new Map();
   if (!engine.ready) return;
   try {
     const vecs = await embedCached(notes.map(noteText));
+    if (token !== vectorRefreshToken) return;
     engine.vecs = new Map(notes.map((n, i) => [n.id, vecs[i]]));
-  } catch { /* keep keyword mode */ }
+  } catch {
+    if (token === vectorRefreshToken) engine.vecs = new Map();
+  }
 }
 const semanticOn = () => engine.ready && engine.vecs.size === notes.length && notes.every((n) => engine.vecs.has(n.id));
 
@@ -126,7 +139,8 @@ async function load() {
   }
   sortNotes();
   await refreshVectors();
-  const fromHash = decodeURIComponent(location.hash.slice(1));
+  let fromHash = "";
+  try { fromHash = decodeURIComponent(location.hash.slice(1)); } catch { /* use the first note */ }
   openNote(notes.find((n) => n.id === fromHash)?.id || notes[0]?.id || null);
 }
 function makeNote({ title = "Untitled", body = "" } = {}) {
@@ -275,7 +289,7 @@ function newNote(title = "Untitled") {
   // Open first so typing straight away is never overwritten by a late render.
   openNote(n.id);
   $("title").focus(); $("title").select();
-  db.putNote(n).catch(() => {});
+  db.putNote(n).catch(() => { $("saveState").textContent = "Couldn't save — storage unavailable"; });
   refreshVectors().then(renderConnections);
 }
 $("newBtn").addEventListener("click", () => newNote());

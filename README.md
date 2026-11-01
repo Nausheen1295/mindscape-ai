@@ -47,7 +47,7 @@ Notes (IndexedDB, this browser only)
 
 ## Tech
 
-JavaScript (ES modules), [Transformers.js](https://huggingface.co/docs/transformers.js) with [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2), [D3](https://d3js.org/) force simulation, [marked](https://marked.js.org/) + [DOMPurify](https://github.com/cure53/DOMPurify), IndexedDB and Web Workers. There is no build step and no backend.
+JavaScript (ES modules), [Transformers.js](https://huggingface.co/docs/transformers.js) with [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2), [D3](https://d3js.org/) force simulation, [marked](https://marked.js.org/) + [DOMPurify](https://github.com/cure53/DOMPurify), IndexedDB and Web Workers. There is no bundling step and no backend. `npm run build` performs a static asset and JavaScript syntax check.
 
 ## Run locally
 
@@ -56,7 +56,10 @@ git clone https://github.com/Nausheen1295/mindscape-ai.git
 cd mindscape-ai
 npx serve .          # or: python -m http.server  (workers need http://, not file://)
 npm test             # unit tests for the text & similarity helpers (Node 20+)
+npm run build        # validate the deployable static site
 ```
+
+The repository includes a GitHub Actions workflow that runs both checks and deploys the site to GitHub Pages when `main` changes. Enable **GitHub Pages → Source: GitHub Actions** once in the repository settings.
 
 ## Privacy and limits
 

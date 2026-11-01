@@ -25,11 +25,17 @@ function open() {
 async function tx(store, mode, fn) {
   const db = await open();
   return new Promise((resolve, reject) => {
-    const t = db.transaction(store, mode);
-    const s = t.objectStore(store);
-    const result = fn(s);
-    t.oncomplete = () => resolve(result?.result ?? result);
-    t.onerror = () => reject(t.error);
+    let result;
+    try {
+      const t = db.transaction(store, mode);
+      const s = t.objectStore(store);
+      result = fn(s);
+      t.oncomplete = () => resolve(result?.result ?? result);
+      t.onerror = () => reject(t.error || new Error(`IndexedDB transaction failed: ${store}`));
+      t.onabort = () => reject(t.error || new Error(`IndexedDB transaction aborted: ${store}`));
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 
