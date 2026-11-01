@@ -599,7 +599,7 @@ async function syncAccount(session) {
 function initAccount() {
   const dialog = $("accountDialog");
   const form = $("accountForm");
-  $("accountBtn").addEventListener("click", async () => {
+  const openAccount = async () => {
     if (cloudSession) {
       await cloud.signOut();
       return;
@@ -609,7 +609,9 @@ function initAccount() {
       return;
     }
     dialog.showModal();
-  });
+  };
+  $("accountBtn").addEventListener("click", openAccount);
+  $("disclaimerSignIn").addEventListener("click", openAccount);
   $("accountCancel").addEventListener("click", () => dialog.close());
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
