@@ -33,28 +33,28 @@ function startModel() {
   try {
     worker = new Worker("js/embed-worker.js", { type: "module" });
   } catch {
-    engine.failed = true; setModel("failed", "Keyword mode (AI model unavailable)"); return;
+    engine.failed = true; setModel("failed", "Basic search");
   }
   const rejectPending = (message) => {
     pending.forEach(({ reject }) => reject(new Error(message)));
     pending.clear();
   };
-  setModel("loading", "Loading AI model…");
+  setModel("loading", "Preparing suggestions…");
   worker.onmessage = ({ data }) => {
     if (data.type === "progress") {
       const pct = data.total ? Math.round((data.loaded / data.total) * 100) : 0;
-      setModel("loading", `Loading AI model ${pct}%`);
+      setModel("loading", `Preparing suggestions ${pct}%`);
       return;
     }
     if (data.type === "ready") {
       engine.ready = true;
-      setModel("loading", "Linking notes…");
-      refreshVectors().then(() => { setModel("ready", "Semantic AI on"); renderAll(); if ($("search").value.trim()) runSearch(); });
+      setModel("loading", "Finding related notes…");
+      refreshVectors().then(() => { setModel("ready", "Smart suggestions on"); renderAll(); if ($("search").value.trim()) runSearch(); });
       return;
     }
     if (data.type === "failed") {
       engine.failed = true;
-      setModel("failed", "Keyword mode (AI model unavailable)");
+      setModel("failed", "Basic search (suggestions unavailable)");
       rejectPending(data.error || "The semantic model failed to load.");
       return;
     }
@@ -65,7 +65,7 @@ function startModel() {
   };
   worker.onerror = (event) => {
     engine.failed = true;
-    setModel("failed", "Keyword mode (AI model unavailable)");
+    setModel("failed", "Basic search (suggestions unavailable)");
     rejectPending(event.message || "The semantic model worker failed.");
   };
 }
@@ -169,7 +169,7 @@ function renderList() {
     : notes.map((n) => ({ n }));
   if (tagFilter) list = list.filter(({ n }) => parseTags(n.body).includes(tagFilter));
   $("listInfo").textContent = searchResults
-    ? `${list.length} match${list.length === 1 ? "" : "es"} ${semanticOn() ? "by meaning" : "by keyword"}`
+    ? `${list.length} match${list.length === 1 ? "" : "es"} ${semanticOn() ? "by related ideas" : "by words"}`
     : `${list.length} note${list.length === 1 ? "" : "s"}${tagFilter ? ` tagged #${tagFilter}` : ""}`;
   $("noteList").innerHTML = list.map(({ n, score }) => {
     const snippet = esc(plainText(n.body).slice(0, 140));
@@ -316,8 +316,8 @@ function renderConnections() {
   const related = notes.filter((o) => o !== n).map((o) => ({ o, s: similarity(n, o) }))
     .filter((r) => r.s >= relatedFloor()).sort((a, b) => b.s - a.s).slice(0, 6);
   $("relatedHint").textContent = semanticOn()
-    ? "Found by the on-device AI model: similar ideas, even with no shared words."
-    : engine.failed ? "Keyword matching (the AI model couldn't load)." : "Keyword matching while the AI model loads…";
+    ? "Suggested because the ideas seem related, even when the words are different."
+    : engine.failed ? "Showing notes with similar words. Smart suggestions are unavailable right now." : "Looking for notes with similar words while smart suggestions load…";
   $("related").innerHTML = related.map(({ o, s }) => `
     <li><button class="open" type="button" data-open="${o.id}"><span>${esc(o.title || "Untitled")}</span><span class="pct">${Math.round(s * 100)}%</span></button>
     ${linked.has(o.title.toLowerCase()) ? "" : `<button class="btn link" type="button" data-link="${esc(o.title)}" aria-label="Link ${esc(o.title)} into this note">+ link</button>`}</li>`).join("")
@@ -405,7 +405,7 @@ function drawGraph() {
   const found = semanticLinks(notes.map((n) => n.id), vecs, semantic ? thr : thr * 0.35, 3)
     .filter(({ a, b }) => !seen.has([a, b].sort().join("|")));
   found.forEach(({ a, b, score }) => edges.push({ source: a, target: b, kind: "sem", score }));
-  $("graphInfo").textContent = `${nodes.length} notes · ${edges.length - found.length} links · ${found.length} found by ${semantic ? "meaning" : "keywords"}`;
+  $("graphInfo").textContent = `${nodes.length} notes · ${edges.length - found.length} links · ${found.length} suggested`;
 
   const degree = new Map();
   edges.forEach((e) => { degree.set(e.source, (degree.get(e.source) || 0) + 1); degree.set(e.target, (degree.get(e.target) || 0) + 1); });
@@ -486,7 +486,7 @@ async function ask(q) {
     out.innerHTML = `<div class="note warn">Nothing in your notes answers this closely. MindScape only answers from what you've written, so try rephrasing or add a note about it.</div>`;
     return;
   }
-  out.innerHTML = `<p class="small muted">Best matches by ${mode}${mode === "keyword" ? " (the AI model isn't loaded, so this is keyword matching)" : ""}:</p>` +
+  out.innerHTML = `<p class="small muted">Most helpful notes${mode === "keyword" ? " (based on matching words)" : ""}:</p>` +
     top.map((s, i) => `
     <article class="card answer ${i === 0 ? "best" : ""}">
       <div class="src"><button type="button" data-open="${s.n.id}">${esc(s.n.title || "Untitled")}</button><span class="tag">${Math.round(s.score * 100)}% match</span></div>
